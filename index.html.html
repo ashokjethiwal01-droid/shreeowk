@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<title>Shree Online Work – Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+<style>
+body{margin:0;font-family:Arial,sans-serif;background:#e0f2fe;}
+#header{background:linear-gradient(135deg,#60a5fa,#3b82f6);padding:10px;color:#fff;text-align:center;display:none;}
+#clock{font-weight:bold;font-size:20px;}
+#welcome{font-size:16px;background:rgba(0,0,0,0.2);padding:6px;border-radius:6px;overflow:hidden;white-space:nowrap;margin-top:4px;}
+#welcome span{display:inline-block;padding-left:100%;animation:scroll 15s linear infinite;}
+@keyframes scroll{0%{transform:translateX(0%);}100%{transform:translateX(-100%);}}
+
+.container{display:flex;min-height:calc(100vh - 70px);}
+.sidebar{width:250px;background:#fff;border-right:2px solid #3b82f6;padding:10px;overflow-y:auto;display:none;}
+.sidebar h3{color:#3b82f6;margin-top:20px;margin-bottom:10px;}
+.sidebar ul{list-style:none;padding:0;margin:0;}
+.sidebar li{padding:8px 5px;font-size:14px;border-radius:6px;cursor:pointer;margin-bottom:4px;display:flex;align-items:center;}
+.sidebar li i{margin-right:8px;color:#2563eb;}
+.sidebar li a{text-decoration:none;color:#1e40af;width:100%;}
+.sidebar li:hover{background:#dbeafe;}
+
+.main{flex:1;padding:20px;overflow:auto;}
+.main .card{background:#fff;border-radius:12px;padding:16px;box-shadow:0 5px 15px rgba(0,0,0,0.15);margin-bottom:20px;}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+@media(max-width:900px){.container{flex-direction:column;}.grid{grid-template-columns:1fr;}}
+
+input,select,button{width:100%;padding:10px;margin-top:5px;margin-bottom:10px;border-radius:8px;border:1px solid #ccc;font-size:14px;}
+button{cursor:pointer;font-weight:bold;}
+button.green{background:#16a34a;color:#fff;border:none;}
+button.red{background:#dc2626;color:#fff;border:none;}
+button.blue{background:#2563eb;color:#fff;border:none;}
+table{width:100%;border-collapse:collapse;font-size:14px;}
+th,td{border:1px solid #ddd;padding:8px;text-align:left;}
+th{background:#f1f5f9;}
+.receipt{border:2px dashed #2563eb;padding:15px;border-radius:12px;background:#eff6ff;}
+.center{text-align:center;}
+.edit-btn, .delete-btn, .print-btn{padding:5px 8px;margin-right:5px;border:none;border-radius:5px;color:#fff;cursor:pointer;}
+.edit-btn{background:#2563eb;}
+.delete-btn{background:#dc2626;}
+.print-btn{background:#10b981;}
+
+/* A4 print layout */
+@media print {
+  body * { visibility: hidden; }
+  #receiptBox, #receiptBox * { visibility: visible; }
+  #receiptBox { 
+    position: absolute; top:0; left:0; width:210mm; height:297mm; 
+    padding:20mm; 
+    box-sizing: border-box;
+  }
+  .receipt {
+    border:2px dashed #2563eb;
+    padding:20px;
+    border-radius:12px;
+    background:#fff;
+    width:100%;
+    height:auto;
+    box-sizing: border-box;
+  }
+}
+</style>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+
+<!-- Login Box -->
+<div class="main card" id="loginBox" style="max-width:400px;margin:50px auto;">
+  <h2 class="center">Admin Login</h2>
+  <label>Username</label>
+  <input type="text" id="user">
+  <label>Password</label>
+  <input type="password" id="pass">
+  <button class="blue" onclick="login()">Login</button>
+</div>
+
+<!-- Header -->
+<div id="header">
+  <div id="clock"></div>
+  <div id="welcome"><span>Welcome to Shree Online Work – Kshipra, Thank You</span></div>
+</div>
+
+<div class="container">
+  <!-- Sidebar -->
+  <div class="sidebar" id="sidebar">
+    <h3><i class="fa fa-circle-notch"></i> MP Online Work</h3>
+    <ul id="mpList">
+      <li><i class="fa fa-file-alt"></i> <a href="https://mponline.gov.in/" target="_blank">Income Certificate</a></li>
+      <li><i class="fa fa-file-alt"></i> <a href="https://mponline.gov.in/" target="_blank">Caste Certificate</a></li>
+      <li><i class="fa fa-file-alt"></i> <a href="https://mponline.gov.in/" target="_blank">Domicile Certificate</a></li>
+      <li><i class="fa fa-file-alt"></i> <a href="https://mponline.gov.in/" target="_blank">Labour Card</a></li>
+      <li><i class="fa fa-file-alt"></i> <a href="https://mponline.gov.in/" target="_blank">Ayushman Card</a></li>
+    </ul>
+
+    <h3><i class="fa fa-circle-notch"></i> CSC Work</h3>
+    <ul id="cscList">
+      <li><i class="fa fa-id-card"></i> <a href="https://csc.gov.in/" target="_blank">PAN Card (New/Correction)</a></li>
+      <li><i class="fa fa-id-card"></i> <a href="https://csc.gov.in/" target="_blank">Aadhaar Update</a></li>
+      <li><i class="fa fa-id-card"></i> <a href="https://csc.gov.in/" target="_blank">ESIC Services</a></li>
+      <li><i class="fa fa-id-card"></i> <a href="https://csc.gov.in/" target="_blank">MP Online All Forms</a></li>
+      <li><i class="fa fa-id-card"></i> <a href="https://csc.gov.in/" target="_blank">Driving Licence</a></li>
+    </ul>
+  </div>
+
+  <!-- Dashboard -->
+  <div class="main" id="dashboard" style="display:none;">
+    <h1>Shree Online Work – CSC / MP Online Dashboard</h1>
+
+    <div class="grid">
+      <!-- Customer Entry -->
+      <div class="card">
+        <h2>Customer Entry</h2>
+        <label>सेवा चुनें</label>
+        <select id="service">
+          <option value="">Select Service</option>
+          <option>PAN Card (New / Correction)</option>
+          <option>Aadhaar Update</option>
+          <option>ESIC Services</option>
+          <option>MP Online All Forms</option>
+          <option>Samagra ID</option>
+          <option>Income Certificate</option>
+          <option>Caste Certificate</option>
+          <option>Domicile Certificate</option>
+          <option>Labour Card</option>
+          <option>Ayushman Card</option>
+          <option>Driving Licence</option>
+          <option>Voter ID</option>
+          <option>Passport Apply</option>
+          <option>Resume</option>
+          <option>EPFO Work</option>
+        </select>
+
+        <label>ग्राहक का नाम</label>
+        <input type="text" id="name">
+
+        <label>मोबाइल नंबर</label>
+        <input type="text" id="mobile">
+
+        <label>Tracking No</label>
+        <input type="text" id="tracking">
+
+        <label>Reference No</label>
+        <input type="text" id="reference">
+
+        <label>Payment Method</label>
+        <select id="payment">
+          <option value="">Select Payment</option>
+          <option>Cash</option>
+          <option>Online</option>
+        </select>
+
+        <label>Amount (राशि)</label>
+        <input type="number" id="amount" placeholder="उदा. 100">
+
+        <label>तारीख</label>
+        <input type="date" id="date">
+
+        <button class="green" onclick="saveData()">Save Entry</button>
+      </div>
+
+      <!-- Customer List -->
+      <div class="card">
+        <h2>ग्राहक सूची</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>सेवा</th>
+              <th>नाम</th>
+              <th>मोबाइल</th>
+              <th>Tracking No</th>
+              <th>Reference No</th>
+              <th>Payment</th>
+              <th>Amount</th>
+              <th>तारीख</th>
+              <th>क्रिया</th>
+            </tr>
+          </thead>
+          <tbody id="list"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card hidden" id="receiptBox">
+      <div class="receipt" id="receipt"></div>
+      <button class="blue" onclick="window.print()">Print</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDemoKeyForTesting123456",
+  authDomain: "shree-demo.firebaseapp.com",
+  projectId: "shree-demo"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const customersRef = db.collection("shree");
+
+const loginBox = document.getElementById('loginBox');
+const dashboard = document.getElementById('dashboard');
+const receiptBox = document.getElementById('receiptBox');
+const receipt = document.getElementById('receipt');
+const listTable = document.getElementById('list');
+const header = document.getElementById('header');
+const sidebar = document.getElementById('sidebar');
+
+let editIndex = null;
+let editId = null;
+
+function login(){
+  const user = document.getElementById('user').value;
+  const pass = document.getElementById('pass').value;
+  if(user==='admin' && pass==='1234'){
+    loginBox.style.display='none';
+    header.style.display='block';
+    sidebar.style.display='block';
+    dashboard.style.display='block';
+    startClock();
+    loadData();
+    syncWithFirebase();
+  } else alert('गलत login');
+}
+
+function startClock(){
+  function updateClock(){
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('hi-IN',{hour12:false});
+    document.getElementById('clock').innerText = timeStr;
+  }
+  updateClock();
+  setInterval(updateClock,1000);
+}
+
+function saveData(){
+  const service = document.getElementById('service').value;
+  const name = document.getElementById('name').value;
+  const mobile = document.getElementById('mobile').value;
+  const tracking = document.getElementById('tracking').value;
+  const reference = document.getElementById('reference').value;
+  const payment = document.getElementById('payment').value;
+  const amount = document.getElementById('amount').value;
+  const date = document.getElementById('date').value;
+
+  if(!service || !name) return alert('Required fields खाली नहीं छोड़ें');
+
+  const obj = {service,name,mobile,tracking,reference,payment,amount,date};
+
+  let data = JSON.parse(localStorage.getItem('customers')||'[]');
+  if(editIndex!==null){
+    data[editIndex] = obj;
+    editIndex=null;
+  } else data.push(obj);
+  localStorage.setItem('customers', JSON.stringify(data));
+
+  if(editId){
+    customersRef.doc(editId).set(obj).then(()=>{editId=null;});
+  } else customersRef.add(obj).then(docRef=>{editId=docRef.id;});
+
+  showReceipt(obj);
+  loadData();
+  clearForm();
+}
+
+function loadData(){
+  let data = JSON.parse(localStorage.getItem('customers')||'[]');
+  listTable.innerHTML='';
+  data.forEach((d,i)=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${d.service}</td>
+      <td>${d.name}</td>
+      <td>${d.mobile}</td>
+      <td>${d.tracking}</td>
+      <td>${d.reference}</td>
+      <td>${d.payment}</td>
+      <td>₹${d.amount}</td>
+      <td>${d.date}</td>
+      <td>
+        <button class="edit-btn" onclick="editEntry(${i})">Edit</button>
+        <button class="delete-btn" onclick="deleteEntry(${i})">Delete</button>
+        <button class="print-btn" onclick="printOldEntry(${i})">Print</button>
+      </td>`;
+    listTable.appendChild(tr);
+  });
+}
+
+function showReceipt(d){
+  receiptBox.classList.remove('hidden');
+  receipt.innerHTML = `
+    <h2 class='center'>SHREE ONLINE WORK – KSHIPRA</h2>
+    <p class='center'>Mob: 9752712951</p>
+    <hr>
+    <table style="width:100%;border-collapse:collapse;text-align:left;">
+      <tr><th style="border:1px solid #2563eb;padding:6px;">सेवा</th><td style="border:1px solid #2563eb;padding:6px;">${d.service}</td></tr>
+      <tr><th style="border:1px solid #2563eb;padding:6px;">नाम</th><td style="border:1px solid #2563eb;padding:6px;">${d.name}</td></tr>
+      <tr><th style="border:1px solid #2563eb;padding:6px;">मोबाइल</th><td style="border:1px solid #2563eb;padding:6px;">${d.mobile}</td></tr>
+      <tr><th style="border:1px solid #2563eb;padding:6px;">Tracking No</th><td style="border:1px solid #2563eb;padding:6px;">${d.tracking}</td></tr>
+      <tr><th style="border:1px solid #2563eb;padding:6px;">Reference No</th><td style="border:1px solid #2563eb;padding:6px;">${d.reference}</td></tr>
+      <tr><th style="border:1px solid #2563eb;padding:6px;">Payment Method</th><td style="border:1px solid #2563eb;padding:6px;">${d.payment}</td></tr>
+      <tr><th style="border:1px solid #2563eb;padding:6px;">Amount</th><td style="border:1px solid #2563eb;padding:6px;">₹${d.amount}</td></tr>
+      <tr><th style="border:1px solid #2563eb;padding:6px;">तारीख</th><td style="border:1px solid #2563eb;padding:6px;">${d.date}</td></tr>
+    </table>
+    <p style='margin-top:30px; text-align:right;'>Signature: ASHOK JETHIWAL</p>`;
+}
+
+function printOldEntry(i){
+  let data = JSON.parse(localStorage.getItem('customers')||'[]');
+  showReceipt(data[i]);
+  window.print();
+}
+
+function editEntry(i){
+  let data = JSON.parse(localStorage.getItem('customers')||'[]');
+  document.getElementById('service').value = data[i].service;
+  document.getElementById('name').value = data[i].name;
+  document.getElementById('mobile').value = data[i].mobile;
+  document.getElementById('tracking').value = data[i].tracking;
+  document.getElementById('reference').value = data[i].reference;
+  document.getElementById('payment').value = data[i].payment;
+  document.getElementById('amount').value = data[i].amount;
+  document.getElementById('date').value = data[i].date;
+  editIndex = i;
+}
+
+function deleteEntry(i){
+  if(confirm('क्या आप इसे हटाना चाहते हैं?')){
+    let data = JSON.parse(localStorage.getItem('customers')||'[]');
+    data.splice(i,1);
+    localStorage.setItem('customers', JSON.stringify(data));
+    loadData();
+  }
+}
+
+function clearForm(){
+  document.getElementById('service').value='';
+  document.getElementById('name').value='';
+  document.getElementById('mobile').value='';
+  document.getElementById('tracking').value='';
+  document.getElementById('reference').value='';
+  document.getElementById('payment').value='';
+  document.getElementById('amount').value='';
+  document.getElementById('date').value='';
+}
+
+function syncWithFirebase(){
+  customersRef.onSnapshot(snapshot=>{
+    let onlineData = [];
+    snapshot.forEach(doc=>{
+      onlineData.push(doc.data());
+    });
+    let localData = JSON.parse(localStorage.getItem('customers')||'[]');
+    localData.forEach(entry=>{
+      if(!onlineData.some(o=>o.name===entry.name && o.date===entry.date)){
+        customersRef.add(entry);
+      }
+    });
+  });
+}
+</script>
+</body>
+</html>
